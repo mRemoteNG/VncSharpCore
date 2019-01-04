@@ -88,15 +88,17 @@ namespace VncSharp
         // ReSharper disable once MemberCanBePrivate.Global
         // ReSharper disable once FieldCanBeMadeReadOnly.Global
         public AuthenticateDelegate GetPassword;
-
+        
         private Bitmap desktop; // Internal representation of remote image.
         private readonly Image designModeDesktop; // Used when painting control in VS.NET designer
         private VncClient vnc; // The Client object handling all protocol-level interaction
         private int port = 5900; // The port to connect to on remote host (5900 is default)
         private bool passwordPending; // After Connect() is called, a password might be required.
-        private bool fullScreenRefresh; // Whether or not to request the entire remote screen be sent.
         private VncDesktopTransformPolicy desktopPolicy;
         private RuntimeState state = RuntimeState.Disconnected;
+        private bool viewOnlyMode = false;
+        private int bitsPerPixel = 0;
+        private int depth = 0;
 
         //private KeyboardHook _keyboardHook = new KeyboardHook();
 
@@ -222,7 +224,7 @@ namespace VncSharp
         public void FullScreenUpdate()
         {
             InsureConnection(true);
-            fullScreenRefresh = true;
+            vnc.FullScreenRefresh = true;
         }
 
         /// <summary>
@@ -271,10 +273,9 @@ namespace VncSharp
             Invalidate(desktopPolicy.AdjustUpdateRectangle(e.DesktopUpdater.UpdateRectangle));
 
             if (state != RuntimeState.Connected) return;
-            vnc.RequestScreenUpdate(fullScreenRefresh);
 
             // Make sure the next screen update is incremental
-            fullScreenRefresh = false;
+            vnc.FullScreenRefresh = false;
         }
 
         /// <summary>
@@ -329,7 +330,7 @@ namespace VncSharp
         /// <exception cref="System.InvalidOperationException">Thrown if the RemoteDesktop control is already Connected.  See <see cref="VncSharp.RemoteDesktop.IsConnected" />.</exception>
         public void Connect(string host, int display)
         {
-            Connect(host, display, false);
+            Connect(host, display, viewOnlyMode);
         }
 
         /// <summary>
@@ -371,6 +372,7 @@ namespace VncSharp
             vnc = new VncClient();
             vnc.ConnectionLost += VncClientConnectionLost;
             vnc.ServerCutText += VncServerCutText;
+            vnc.ViewOnly = viewOnly;
 
             passwordPending = vnc.Connect(host, display, VncPort, viewOnly);
 
@@ -412,24 +414,15 @@ namespace VncSharp
                 OnConnectionLost();
         }
 
-        /// <summary>
-        /// Changes the input mode to view-only or interactive.
-        /// </summary>
-        /// <param name="viewOnly">True if view-only mode is desired (no mouse/keyboard events will be sent).</param>
-        public void SetInputMode(bool viewOnly)
-        {
-            vnc.SetInputMode(viewOnly);
-        }
-
-        [DefaultValue(false)]
-        [Description("True if view-only mode is desired (no mouse/keyboard events will be sent)")]
-        /// <summary>
-        /// True if view-only mode is desired (no mouse/keyboard events will be sent).
-        /// </summary>
+        //[DefaultValue(false)]
+        //[Description("True if view-only mode is desired (no mouse/keyboard events will be sent)")]
+        ///// <summary>
+        ///// True if view-only mode is desired (no mouse/keyboard events will be sent).
+        ///// </summary>
         public bool ViewOnly
         {
-            get { return vnc.IsViewOnly; }
-            set { SetInputMode(value); }
+            get { return viewOnlyMode; }
+            set { viewOnlyMode = value; }
         }
 
         /// <summary>
@@ -460,6 +453,28 @@ namespace VncSharp
             set { SetScalingMode(value); }
         }
 
+        [DefaultValue(0)]
+        [Description("Sets the number of Bits Per Pixel for the Framebuffer--one of 8, 16, or 32")]
+        /// <summary>
+        /// Sets the number of Bits Per Pixel for the Framebuffer--one of 8, 16, or 32
+        /// </summary>
+        public int BitsPerPixel
+        {
+            get { return bitsPerPixel; }
+            set { bitsPerPixel = value; }
+        }
+
+        [DefaultValue(0)]
+        [Description("Sets the Colour Depth of the Framebuffer--one of 3, 6, 8, or 16")]
+        /// <summary>
+        /// Sets the Colour Depth of the Framebuffer--one of 3, 6, 8, or 16
+        /// </summary>
+        public int Depth
+        {
+            get { return depth; }
+            set { depth = value; }
+        }
+
         /// <summary>
         /// After protocol-level initialization and connecting is complete, the local GUI objects have to be set-up, and requests for updates to the remote host begun.
         /// </summary>
@@ -468,7 +483,7 @@ namespace VncSharp
         {
             // Finish protocol handshake with host now that authentication is done.
             InsureConnection(false);
-            vnc.Initialize();
+            vnc.Initialize(bitsPerPixel, depth);
             SetState(RuntimeState.Connected);
 
             // Create a buffer on which updated rectangles will be drawn and draw a "please wait..." 
@@ -634,8 +649,8 @@ namespace VncSharp
                 switch (state)
                 {
                     case RuntimeState.Connected:
-                        Assert(desktop != null);
-                        DrawDesktopImage(desktop, pe.Graphics);
+                        if (desktop != null)
+                            DrawDesktopImage(desktop, pe.Graphics);
                         break;
                     case RuntimeState.Disconnected:
                     case RuntimeState.Disconnecting:
@@ -651,8 +666,8 @@ namespace VncSharp
             else
             {
                 // Draw a static screenshot of a Windows desktop to simulate the control in action
-                Assert(designModeDesktop != null);
-                DrawDesktopImage(designModeDesktop, pe.Graphics);
+                if (designModeDesktop != null)
+                    DrawDesktopImage(designModeDesktop, pe.Graphics);
             }
             base.OnPaint(pe);
         }

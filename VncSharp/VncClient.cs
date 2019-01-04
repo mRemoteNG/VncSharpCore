@@ -35,48 +35,63 @@ namespace VncSharp
 	
 	public class VncClient
 	{
-	    private RfbProtocol rfb;			// The protocol object handling all communication with server.
-	    private byte securityType;			// The type of Security agreed upon by client/server
-	    private EncodedRectangleFactory factory;
-	    private Thread worker;				// To request and read in-coming updates from server
-	    private ManualResetEvent done;		// Used to tell the worker thread to die cleanly
-	    private IVncInputPolicy inputPolicy;// A mouse/keyboard input strategy
+		private RfbProtocol rfb;			// The protocol object handling all communication with server.
+		private byte securityType;			// The type of Security agreed upon by client/server
+		private EncodedRectangleFactory factory;
+		private Thread worker;				// To request and read in-coming updates from server
+		private ManualResetEvent done;		// Used to tell the worker thread to die cleanly
+		private IVncInputPolicy inputPolicy;// A mouse/keyboard input strategy
+		private bool viewOnlyMode = false;
 
 		/// <summary>
 		/// Raised when the connection to the remote host is lost.
 		/// </summary>
 		public event EventHandler ConnectionLost;
 
-        /// <summary>
-        /// Raised when the server caused the local clipboard to be filled.
-        /// </summary>
-        public event EventHandler ServerCutText;
+		/// <summary>
+		/// Raised when the server caused the local clipboard to be filled.
+		/// </summary>
+		public event EventHandler ServerCutText;
 
-	    /// <summary>
+		/// <summary>
 		/// Gets the Framebuffer representing the remote server's desktop geometry.
 		/// </summary>
 		public Framebuffer Framebuffer { get; private set; }
 
-	    /// <summary>
-        /// Gets the hostname of the remote desktop
-        /// </summary>
-        public string HostName
-	    {
-	        get { return Framebuffer.DesktopName; }
-	    }
+		/// <summary>
+		/// Gets/Sets if full screen refresh is required (forced) from the connected server.
+		/// </summary>
+		public bool FullScreenRefresh { get; set; }
 
-	    /// <summary>
+		/// <summary>
+		/// Gets the hostname of the remote desktop
+		/// </summary>
+		public string HostName
+		{
+			get { return Framebuffer.DesktopName; }
+		}
+
+		/// <summary>
 		/// Returns True if the VncClient object is View-Only, meaning no mouse/keyboard events are being sent.
 		/// </summary>
-		public bool IsViewOnly
+		public bool ViewOnly
 	    {
-	        get { return inputPolicy is VncViewInputPolicy; }
+	        get {	return viewOnlyMode;	}
+			set {	viewOnlyMode = value;
+					// Allocate the inputPolicy if there is a connection
+					if (rfb != null)
+					{	if (viewOnlyMode)
+							inputPolicy = new VncViewInputPolicy(rfb);
+						else
+							inputPolicy = new VncDefaultInputPolicy(rfb);
+					}
+				}
 	    }
 
 	    // Just for API compat, since I've added viewOnly
 		public bool Connect(string host, int display, int port)
 		{
-			return Connect(host, display, port, false);
+			return Connect(host, display, port, viewOnlyMode);
 		}
 
 		/// <summary>
@@ -99,6 +114,7 @@ namespace VncSharp
 			
 			rfb = new RfbProtocol();
 
+			viewOnlyMode = viewOnly;
 			if (viewOnly) {
 				inputPolicy = new VncViewInputPolicy(rfb);
 			} else {
@@ -137,7 +153,7 @@ namespace VncSharp
 			        throw new VncProtocolException("Connection Failed. The server rejected the connection for the following reason: " + rfb.ReadSecurityFailureReason());
 			    }
 			    securityType = GetSupportedSecurityType(types);
-			    Debug.Assert(securityType > 0, "Unknown Security Type(s)", "The server sent one or more unknown Security Types.");
+				Debug.Assert(securityType > 0, "Unknown Security Type(s)", "The server sent one or more unknown Security Types.");
 						
 			    rfb.WriteSecurityType(securityType);
 						
@@ -280,12 +296,11 @@ namespace VncSharp
 		/// <summary>
 		/// Finish setting-up protocol with VNC Host.  Should be called after Connect and Authenticate (if password required).
 		/// </summary>
-		public void Initialize()
+		public void Initialize(int bitsPerPixel, int depth)
 		{
 			// Finish initializing protocol with host
-			rfb.WriteClientInitialisation(false);
-			Framebuffer = rfb.ReadServerInit();
-			rfb.WriteSetPixelFormat(Framebuffer);	// just use the server's framebuffer format
+			rfb.WriteClientInitialisation(true);  // Allow the desktop to be shared
+			Framebuffer = rfb.ReadServerInit(bitsPerPixel, depth);
 
 			rfb.WriteSetEncodings(new uint[] {	RfbProtocol.ZRLE_ENCODING,
 			                                    RfbProtocol.HEXTILE_ENCODING, 
@@ -293,7 +308,9 @@ namespace VncSharp
 												RfbProtocol.RRE_ENCODING,
 												RfbProtocol.COPYRECT_ENCODING,
 												RfbProtocol.RAW_ENCODING });
-			
+
+			rfb.WriteSetPixelFormat(Framebuffer);	// set the required ramebuffer format
+            
 			// Create an EncodedRectangleFactory so that EncodedRectangles can be built according to set pixel layout
 			factory = new EncodedRectangleFactory(rfb, Framebuffer);
 		}
@@ -318,7 +335,8 @@ namespace VncSharp
 		public void Disconnect()
 		{
 			// Stop the worker thread.
-			done.Set();
+			if (done != null)
+				done.Set();
 
 			// BUG FIX: Simon.Phillips@warwick.ac.uk for UltraVNC disconnect issue
 			// Request a tiny screen update to flush the blocking read
@@ -328,8 +346,8 @@ namespace VncSharp
 				// this may not work, as Disconnect can get called in response to the
 				// VncClient raising a ConnectionLost event (e.g., the remote host died).
 			}
-
-			worker.Join(3000);	// this number is arbitrary, just so that it doesn't block forever....
+			if (worker != null)
+				worker.Join(3000);	// this number is arbitrary, just so that it doesn't block forever....
 
 			rfb.Close();	
 			rfb = null;
@@ -350,7 +368,8 @@ namespace VncSharp
 		/// </summary>
 		private void GetRfbUpdates()
 		{
-		    // Get the initial destkop from the host
+			// Get the initial destkop from the host
+			int connLostCount = 0;
 			RequestScreenUpdate(true);
 
 			while (true) {
@@ -402,14 +421,25 @@ namespace VncSharp
                             OnServerCutText();
                             break;
                         case RfbProtocol.SET_COLOUR_MAP_ENTRIES:
-							rfb.ReadColourMapEntry();
+                            rfb.ReadColourMapEntry();
                             break;
                     }
-                } catch {
-                    OnConnectionLost();
+                    // Moved screen update request here to prevent it being called multiple times
+                    // This was the case when multiple rectangles were returned by the host
+                    RequestScreenUpdate(FullScreenRefresh);
+                    connLostCount = 0;
+                    
+                } catch
+                {   // On the first time of no data being received we force a complete update
+                    // This is for times when the server has no update, and caused the timeout.
+                    if (connLostCount++ > 1)
+                        OnConnectionLost();
+                    else
+                        RequestScreenUpdate(true);
                 }
-			}
-		}
+                FullScreenRefresh = false;
+            }
+        }
 
 	    private void OnConnectionLost()
 		{
@@ -451,18 +481,6 @@ namespace VncSharp
 			return true;
 		}
 #endif
-
-		/// <summary>
-		/// Changes the input mode to view-only or interactive.
-		/// </summary>
-		/// <param name="viewOnly">True if view-only mode is desired (no mouse/keyboard events will be sent).</param>
-		public void SetInputMode(bool viewOnly)
-		{
-			if (viewOnly)
-				inputPolicy = new VncViewInputPolicy(rfb);
-			else
-				inputPolicy = new VncDefaultInputPolicy(rfb);
-		}
 
         public void WriteClientCutText(string text)
         {
