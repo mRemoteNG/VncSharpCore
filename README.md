@@ -8,6 +8,8 @@ VncSharp is a VNC Client Library and custom Windows Forms Control. VncSharp is a
 
 VncSharp was written by David Humphrey (david.humphrey@senecac.on.ca) with contributions from many others (see CHANGELOG).
 
+Original GitHub Repo: https://github.com/humphd/VncSharp
+
 Technical Details
 -----------------
 
