@@ -198,7 +198,7 @@ namespace VncSharp
 		/// </summary>
 		/// <param name="types">An array of bytes representing the Security Types supported by the VNC Server.</param>
 		/// <returns>A byte that represents the Security Type to be used by the Client.</returns>
-		private byte GetSupportedSecurityType(byte[] types)
+		private static byte GetSupportedSecurityType(byte[] types)
 		{
 			// Pick the first match in the list of given types.  If you want to add support for new
 			// security types, do it here:
@@ -261,7 +261,7 @@ namespace VncSharp
 		/// <param name="password">The user's password.</param>
 		/// <param name="challenge">The challenge sent by the server.</param>
 		/// <returns>Returns the encrypted challenge.</returns>
-		private byte[] EncryptChallenge(string password, byte[] challenge)
+		private static byte[] EncryptChallenge(string password, byte[] challenge)
 		{
 			var key = new byte[8];
 
@@ -280,18 +280,19 @@ namespace VncSharp
                                  ((key[i] & 0x80) >> 7)  );
 
             // VNC uses DES, not 3DES as written in some documentation
-            DES des = new DESCryptoServiceProvider()
+            using (DES des = DES.Create())
             {
-                Padding = PaddingMode.None,
-                Mode = CipherMode.ECB
-            };
-            var enc = des.CreateEncryptor(key, null); 
+                des.Padding = PaddingMode.None;
+                des.Mode = CipherMode.ECB;
 
-			var response = new byte[16];
-			enc.TransformBlock(challenge, 0, challenge.Length, response, 0);
-			
-			return response;
-		}
+                using (var enc = des.CreateEncryptor(key, null))
+                {
+                    var response = new byte[16];
+                    enc.TransformBlock(challenge, 0, challenge.Length, response, 0);
+                    return response;
+                }
+            }
+        }
 
 		/// <summary>
 		/// Finish setting-up protocol with VNC Host.  Should be called after Connect and Authenticate (if password required).

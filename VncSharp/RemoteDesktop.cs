@@ -820,8 +820,10 @@ namespace VncSharp
                 vnc.WritePointerEvent(mask, desktopPolicy.UpdateRemotePointer(current));
         }
 
+#if NETFRAMEWORK
         [SecurityPermission(SecurityAction.LinkDemand, Flags = SecurityPermissionFlag.UnmanagedCode)]
         [SecurityPermission(SecurityAction.InheritanceDemand, Flags = SecurityPermissionFlag.UnmanagedCode)]
+#endif
         protected override bool ProcessKeyEventArgs(ref Message m)
         {
             return HandleKeyboardEvent(m.Msg, m.WParam.ToInt32(), KeyboardHook.GetModifierKeyState());

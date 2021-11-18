@@ -1,6 +1,9 @@
 Change Log
 ----------
 
+* Version 1.2.0 
+- Added support for .Net 5 and .Net 6
+
 * Version 1.1.1
 
 - Add support for differing BitsPerPixel and Depth settings, improved low bandwidth support (Len Meakin)
