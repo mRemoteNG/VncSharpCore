@@ -9,6 +9,18 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <NeutralLanguage>en</NeutralLanguage>
+    <AssemblyVersion>1.2.1</AssemblyVersion>
+    <FileVersion>1.2.1</FileVersion>
+    <VersionPrefix>1.2.1</VersionPrefix>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/mRemoteNG/VncSharp</RepositoryUrl>
+    <Description>VNC Client Library</Description>
+    <Copyright>The mRemoteNG Team, David Humphrey</Copyright>
+    <PackageProjectUrl>https://github.com/mRemoteNG/VncSharp</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>TRACE;DEBUG;Win32</DefineConstants>
@@ -21,20 +33,26 @@
     <DocumentationFile></DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Resources\**" />
+    <EmbeddedResource Remove="Resources\**" />
+    <None Remove="Resources\**" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="RemoteDesktop.cs">
       <SubType>Component</SubType>
     </Compile>
     <Service Include="{94E38DFF-614B-4cbd-B67C-F211BB35CE8B}" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\screenshot.png" />
-    <EmbeddedResource Include="Resources\vnccursor.cur" />
-    <EmbeddedResource Include="Resources\vncviewer.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="vncviewer.ico" />
     <Content Include="zlib.NET\history.txt" />
     <Content Include="zlib.NET\license.txt" />
     <Content Include="zlib.NET\readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 </Project>
