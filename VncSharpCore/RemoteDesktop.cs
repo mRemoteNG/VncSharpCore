@@ -124,8 +124,9 @@ namespace VncSharpCore
 
             // Show a screenshot of a Windows desktop from the manifest and cache to be used when painting in design mode
             // ReSharper disable once AssignNullToNotNullAttribute
-            designModeDesktop =
-                Image.FromStream(GetAssembly(GetType()).GetManifestResourceStream("VncSharp.Resources.screenshot.png"));
+            var assembly = GetAssembly(GetType());
+            var manifestStream = assembly.GetManifestResourceStream("VncSharpCore.Resources.screenshot.png");
+            designModeDesktop = Image.FromStream(manifestStream);
 
             // Use a simple desktop policy for design mode.  This will be replaced in Connect()
             desktopPolicy = new VncDesignModeDesktopPolicy(this);
