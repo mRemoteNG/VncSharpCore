@@ -61,5 +61,6 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\screenshot.png" />
+    <EmbeddedResource Include="Resources\vnccursor.cur" />
   </ItemGroup>
 </Project>
