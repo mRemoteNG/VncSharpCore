@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFrameworks>net6.0-windows;net48;</TargetFrameworks>
     <OutputType>Library</OutputType>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>VncSharpKey.snk</AssemblyOriginatorKeyFile>
@@ -32,6 +32,9 @@
     <DebugSymbols>true</DebugSymbols>
     <DocumentationFile></DocumentationFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Resources\vnccursor.cur" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>

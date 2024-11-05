@@ -479,7 +479,6 @@ namespace VncSharpCore
 		{
 			// TODO: How to do this under Unix?
 			System.Console.Write("Beep!");
-			return true;
 		}
 #endif
 
