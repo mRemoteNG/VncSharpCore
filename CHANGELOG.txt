@@ -1,5 +1,9 @@
 Change Log
 ----------
+* Version 1.2.2
+
+- Embed vnccursor.cur again, which the 1.2.1 package was missing: RemoteDesktop.SetState(RuntimeState.Connected) threw "Value cannot be null. (Parameter 'stream')" on every connection (Jan Oratowski)
+
 * Version 1.2.0
 
 - Migrated project to .NET6
