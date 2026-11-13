@@ -105,6 +105,7 @@ namespace VncSharpCore
 		public const int XK_Shift_R 	= 0xFFE2;
 		public const int XK_Control_L 	= 0xFFE3;
 		public const int XK_Control_R 	= 0xFFE4;
+		public const int XK_Caps_Lock 	= 0xFFE5;
 		public const int XK_Meta_L 		= 0xFFE7;
 		public const int XK_Meta_R 		= 0xFFE8;
 		public const int XK_Alt_L 		= 0xFFE9;

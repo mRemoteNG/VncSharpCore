@@ -123,6 +123,7 @@ namespace VncSharpCore
         public const int VK_CLEAR = 0x000C;
         public const int VK_RETURN = 0x000D;
         public const int VK_PAUSE = 0x0013;
+        public const int VK_CAPITAL = 0x0014;
         public const int VK_ESCAPE = 0x001B;
         public const int VK_SNAPSHOT = 0x002C;
         public const int VK_INSERT = 0x002D;
