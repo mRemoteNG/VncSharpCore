@@ -841,6 +841,7 @@ namespace VncSharpCore
             {NativeMethods.VK_CLEAR, RfbProtocol.XK_Clear},
             {NativeMethods.VK_RETURN, RfbProtocol.XK_Return},
             {NativeMethods.VK_PAUSE, RfbProtocol.XK_Pause},
+            {NativeMethods.VK_CAPITAL, RfbProtocol.XK_Caps_Lock},
             {NativeMethods.VK_ESCAPE, RfbProtocol.XK_Escape},
             {NativeMethods.VK_SNAPSHOT, RfbProtocol.XK_Sys_Req},
             {NativeMethods.VK_INSERT, RfbProtocol.XK_Insert},
